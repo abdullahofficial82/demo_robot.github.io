@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
+<link rel="stylesheet" href="https://www.w3schools.com/lib/w3-theme-blue-grey.css">
+<link rel='stylesheet' href='https://fonts.googleapis.com/css?family=Open+Sans'>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+<title>Custom Timer Camera Capture</title>
+<style>
+  .container {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+  }
+
+  .left-side {
+    grid-column: 1;
+  }
+
+  .middle {
+    grid-column: 2;
+  }
+
+  .right-side {
+    grid-column: 3;
+  }
+
+  .settings-container {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .settings-container > div {
+    margin-bottom: 10px;
+  }
+
+  video {
+    width: 100%;
+    height: auto;
+  }
+</style>
+</head>
+<body>
+
+<!-- Navbar -->
+<div class="w3-top">
+    <div class="w3-bar w3-theme-d2 w3-left-align w3-large">
+        <a href="#" class="w3-bar-item w3-button w3-padding-large w3-theme-d4"><i class="fa fa-home w3-margin-right"></i>Custom Timer Camera Capture</a>
+        <div class="w3-bar-item w3-right">
+            <a href="/auth/logout" class="btn btn-secondary">Logout</a>
+        </div>
+    </div>
+    
+</div>
+
+<br>
+<br>
+
+<div class="container">
+    <div class="left-side">
+        <h2>Camera timings</h2>
+        <div class="settings-container">
+            <div>
+              <label for="start_date">Select Starting Date:</label>
+              <input type="date" id="start_date">
+            </div>
+          
+            <div>
+              <label for="start_time">Select Starting Time:</label>
+              <input type="time" id="start_time">
+            </div>
+          
+            <div>
+              <label for="end_date">Select Ending Date:</label>
+              <input type="date" id="end_date">
+            </div>
+          
+            <div>
+              <label for="end_time">Select Ending Time:</label>
+              <input type="time" id="end_time">
+            </div>
+          
+            <div>
+              <label for="timer">Select Timer (seconds):</label>
+              <input type="number" id="timer" min="1">
+            </div>
+        </div>
+        <button onclick="startTimer()">Start Timer</button>
+        <button onclick="cancelTimer()">Cancel Timer</button>
+        <button onclick="resetSettings()">Reset</button>          
+    </div>
+
+    <div class="middle">
+        <h2>Camera Settings</h2>
+        <!-- Add camera settings here -->
+    </div>
+
+    <div class="right-side">
+        <h2>Camera Controls</h2>
+        <button onclick="toggleCamera()">Toggle Camera</button>
+        <button onclick="captureImage()">Capture Image</button>
+        <video id="videoElement" autoplay></video>
+    </div>
+
+</div>
+
+<script>
+var timeoutId;
+var intervalId;
+var videoStream;
+
+function startTimer() {
+  var startDate = document.getElementById('start_date').value;
+  var startTime = document.getElementById('start_time').value;
+  var endDate = document.getElementById('end_date').value;
+  var endTime = document.getElementById('end_time').value;
+  var timerSeconds = parseInt(document.getElementById('timer').value);
+
+  var startDateTime = new Date(startDate + ' ' + startTime);
+  var endDateTime = new Date(endDate + ' ' + endTime);
+  var now = new Date();
+
+  var startTimeDifference = startDateTime - now;
+  var endTimeDifference = endDateTime - now;
+  var timerMilliseconds = timerSeconds * 1000;
+
+  if (startTimeDifference <= 0 || endTimeDifference <= 0) {
+    alert('Selected starting and ending date and time must be in the future.');
+    return;
+  }
+
+  if (startDateTime >= endDateTime) {
+    alert('Ending date and time must be after the starting date and time.');
+    return;
+  }
+
+  timeoutId = setTimeout(function() {
+    captureImage();
+    intervalId = setInterval(function() {
+      captureImage();
+      if (new Date() >= endDateTime) {
+        clearInterval(intervalId);
+        clearTimeout(timeoutId);
+      }
+    }, timerMilliseconds);
+  }, startTimeDifference);
+}
+
+function cancelTimer() {
+  clearTimeout(timeoutId);
+  clearInterval(intervalId);
+}
+
+function resetSettings() {
+  document.getElementById('start_date').value = '';
+  document.getElementById('start_time').value = '';
+  document.getElementById('end_date').value = '';
+  document.getElementById('end_time').value = '';
+  document.getElementById('timer').value = '';
+}
+
+function toggleCamera() {
+  if (!videoStream) {
+    navigator.mediaDevices.getUserMedia({ video: true })
+      .then(function(stream) {
+        videoStream = stream;
+        document.getElementById('videoElement').srcObject = stream;
+      })
+      .catch(function(error) {
+        console.error('Error accessing the camera:', error);
+      });
+  } else {
+    videoStream.getTracks().forEach(track => track.stop());
+    videoStream = null;
+    document.getElementById('videoElement').srcObject = null;
+  }
+}
+
+function captureImage() {
+  var canvas = document.createElement('canvas');
+  var video = document.getElementById('videoElement');
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+  var imageDataURL = canvas.toDataURL('image/png');
+  console.log('Image captured:', imageDataURL);
+  
+  // Automatic download of the captured image
+  var downloadLink = document.createElement('a');
+  downloadLink.href = imageDataURL;
+  downloadLink.download = 'captured_image.png';
+  downloadLink.click();
+}
+</script>
+
+</body>
+</html>
